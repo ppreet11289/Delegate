@@ -66,7 +66,7 @@ function App() {
               <img src={user.picture} alt="avatar" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
               <span style={{ fontSize: '14px', color: '#444' }}>Hi, {user.name.split(' ')[0]}</span>
             </div>
-            <a href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/logout`} style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Sign out</a>
+            <a href="http://localhost:3001/logout" style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Sign out</a>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
