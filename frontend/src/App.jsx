@@ -25,7 +25,7 @@ useEffect(() => {
     setChecking(false)
   }, [])
 
-  const sendCommand = async () => {
+const sendCommand = async () => {
     if (!message.trim()) return
     setLoading(true)
     setReply('')
@@ -34,8 +34,7 @@ useEffect(() => {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message, user })
       })
       const data = await response.json()
       setReply(data.reply)

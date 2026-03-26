@@ -1,13 +1,11 @@
 const express = require('express')
 const cors = require('cors')
-const session = require('express-session')
-const { auth, requiresAuth } = require('express-openid-connect')
 require('dotenv').config()
 const Groq = require('groq-sdk')
 const axios = require('axios')
+const { auth } = require('express-openid-connect')
 
 const app = express()
-
 app.set('trust proxy', 1)
 
 app.use(cors({ 
@@ -21,19 +19,7 @@ app.use(cors({
 
 app.use(express.json())
 
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: true,
-    httpOnly: true,
-    sameSite: 'none',
-    maxAge: 24 * 60 * 60 * 1000
-  }
-}))
-
-const config = {
+app.use(auth({
   authRequired: false,
   auth0Logout: true,
   secret: process.env.SESSION_SECRET,
@@ -44,26 +30,8 @@ const config = {
   authorizationParams: {
     response_type: 'code',
     scope: 'openid profile email',
-  },
-  routes: {
-    callback: '/callback',
-    postLogoutRedirect: process.env.FRONTEND_URL
-  },
-  afterCallback: (req, res, session) => {
-    const user = session.id_token 
-      ? JSON.parse(Buffer.from(session.id_token.split('.')[1], 'base64').toString())
-      : {}
-    const userData = Buffer.from(JSON.stringify({
-      name: user.name,
-      email: user.email,
-      picture: user.picture
-    })).toString('base64')
-    res.redirect(`${process.env.FRONTEND_URL}?user=${userData}`)
-    return session
   }
-}
-
-app.use(auth(config))
+}))
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -121,8 +89,22 @@ app.get('/', (req, res) => {
   res.send('Delegate backend is running!')
 })
 
+app.get('/callback', (req, res) => {
+  if (req.oidc.isAuthenticated()) {
+    const user = req.oidc.user
+    const userData = Buffer.from(JSON.stringify({
+      name: user.name,
+      email: user.email,
+      picture: user.picture
+    })).toString('base64')
+    res.redirect(`${process.env.FRONTEND_URL}?user=${userData}`)
+  } else {
+    res.redirect(process.env.FRONTEND_URL)
+  }
+})
+
 app.get('/login', (req, res) => {
-  res.oidc.login({ returnTo: process.env.FRONTEND_URL })
+  res.oidc.login({ returnTo: '/callback' })
 })
 
 app.get('/logout', (req, res) => {
@@ -144,18 +126,20 @@ app.get('/me', (req, res) => {
   }
 })
 
-app.post('/command', requiresAuth(), async (req, res) => {
-  const { message } = req.body
-  const userName = req.oidc.user.name
-  const userId = req.oidc.user.sub
+app.post('/command', async (req, res) => {
+  const { message, user } = req.body
+  const userName = user?.name || 'User'
+  const userId = user?.sub || ''
 
   let emailContext = ''
 
-  const gmailToken = await getGmailToken(userId)
-  if (gmailToken) {
-    const emails = await getEmails(gmailToken)
-    if (emails.length > 0) {
-      emailContext = `\n\nHere are the user's latest unread emails:\n${emails.join('\n')}`
+  if (userId) {
+    const gmailToken = await getGmailToken(userId)
+    if (gmailToken) {
+      const emails = await getEmails(gmailToken)
+      if (emails.length > 0) {
+        emailContext = `\n\nHere are the user's latest unread emails:\n${emails.join('\n')}`
+      }
     }
   }
 
@@ -180,10 +164,7 @@ app.post('/command', requiresAuth(), async (req, res) => {
     })
 
     const reply = response.choices[0].message.content
-    res.json({ 
-      reply,
-      gmailConnected: !!gmailToken
-    })
+    res.json({ reply })
 
   } catch (error) {
     console.error('Groq error:', error)
