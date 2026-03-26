@@ -7,7 +7,16 @@ const Groq = require('groq-sdk')
 const axios = require('axios')
 
 const app = express()
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }))
+
+app.use(cors({ 
+  origin: [
+    'http://localhost:5173',
+    'https://delegate-two.vercel.app',
+    process.env.FRONTEND_URL
+  ], 
+  credentials: true 
+}))
+
 app.use(express.json())
 
 app.use(session({
@@ -20,7 +29,7 @@ const config = {
   authRequired: false,
   auth0Logout: true,
   secret: process.env.SESSION_SECRET,
-  baseURL: 'http://localhost:3001',
+  baseURL: process.env.RAILWAY_URL || 'http://localhost:3001',
   clientID: process.env.AUTH0_CLIENT_ID,
   issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}`,
   clientSecret: process.env.AUTH0_CLIENT_SECRET,
@@ -42,7 +51,6 @@ app.use(auth(config))
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-// Get Auth0 Management API token
 async function getManagementToken() {
   const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
     grant_type: 'client_credentials',
@@ -53,7 +61,6 @@ async function getManagementToken() {
   return response.data.access_token
 }
 
-// Fetch Gmail token from Token Vault
 async function getGmailToken(userId) {
   try {
     const mgmtToken = await getManagementToken()
@@ -70,7 +77,6 @@ async function getGmailToken(userId) {
   }
 }
 
-// Fetch real emails from Gmail
 async function getEmails(gmailToken) {
   try {
     const listRes = await axios.get(
@@ -129,7 +135,6 @@ app.post('/command', requiresAuth(), async (req, res) => {
 
   let emailContext = ''
 
-  // Try to fetch real emails from Token Vault
   const gmailToken = await getGmailToken(userId)
   if (gmailToken) {
     const emails = await getEmails(gmailToken)
