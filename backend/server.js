@@ -50,7 +50,15 @@ const config = {
     postLogoutRedirect: process.env.FRONTEND_URL
   },
   afterCallback: (req, res, session) => {
-    res.redirect(process.env.FRONTEND_URL)
+    const user = session.id_token 
+      ? JSON.parse(Buffer.from(session.id_token.split('.')[1], 'base64').toString())
+      : {}
+    const userData = Buffer.from(JSON.stringify({
+      name: user.name,
+      email: user.email,
+      picture: user.picture
+    })).toString('base64')
+    res.redirect(`${process.env.FRONTEND_URL}?user=${userData}`)
     return session
   }
 }

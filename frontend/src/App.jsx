@@ -8,15 +8,21 @@ function App() {
   const [checking, setChecking] = useState(true)
 
 useEffect(() => {
-    fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/me`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        if (data.loggedIn) setUser(data.user)
-        setChecking(false)
-      })
-      .catch(() => {
-        setChecking(false)
-      })
+    const params = new URLSearchParams(window.location.search)
+    const userParam = params.get('user')
+    
+    if (userParam) {
+      try {
+        const userData = JSON.parse(atob(userParam))
+        setUser(userData)
+        localStorage.setItem('delegate_user', JSON.stringify(userData))
+        window.history.replaceState({}, '', '/')
+      } catch (e) {}
+    } else {
+      const stored = localStorage.getItem('delegate_user')
+      if (stored) setUser(JSON.parse(stored))
+    }
+    setChecking(false)
   }, [])
 
   const sendCommand = async () => {
@@ -69,7 +75,7 @@ useEffect(() => {
               <img src={user.picture} alt="avatar" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
               <span style={{ fontSize: '14px', color: '#444' }}>Hi, {user.name.split(' ')[0]}</span>
             </div>
-            <a href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/logout`} style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Sign out</a>
+            <a href="#" onClick={() => { localStorage.removeItem('delegate_user'); setUser(null) }} style={{ fontSize: '13px', color: '#888', textDecoration: 'none', cursor: 'pointer' }}>Sign out</a>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
