@@ -8,6 +8,8 @@ const axios = require('axios')
 
 const app = express()
 
+app.set('trust proxy', 1)
+
 app.use(cors({ 
   origin: [
     'http://localhost:5173',
@@ -22,7 +24,13 @@ app.use(express.json())
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false,
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    sameSite: 'none',
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }))
 
 const config = {
