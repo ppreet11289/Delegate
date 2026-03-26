@@ -7,16 +7,17 @@ function App() {
   const [user, setUser] = useState(null)
   const [checking, setChecking] = useState(true)
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
-
-  useEffect(() => {
-    fetch(`${backendUrl}/me`, { credentials: 'include' })
+useEffect(() => {
+    fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/me`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.loggedIn) setUser(data.user)
         setChecking(false)
       })
-  }, [backendUrl])
+      .catch(() => {
+        setChecking(false)
+      })
+  }, [])
 
   const sendCommand = async () => {
     if (!message.trim()) return
@@ -24,7 +25,7 @@ function App() {
     setReply('')
 
     try {
-      const response = await fetch(`${backendUrl}/command`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -55,7 +56,7 @@ function App() {
       {!user ? (
         <div>
           <p style={{ color: '#444', marginBottom: '16px' }}>Sign in to start delegating your digital life.</p>
-          <a href={`${backendUrl}/login`}>
+          <a href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/login`}>
             <button style={{ padding: '12px 24px', borderRadius: '8px', background: '#534AB7', color: '#fff', border: 'none', fontSize: '14px', cursor: 'pointer' }}>
               Sign in with Auth0
             </button>
@@ -68,7 +69,7 @@ function App() {
               <img src={user.picture} alt="avatar" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
               <span style={{ fontSize: '14px', color: '#444' }}>Hi, {user.name.split(' ')[0]}</span>
             </div>
-            <a href={`${backendUrl}/logout`} style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Sign out</a>
+            <a href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/logout`} style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>Sign out</a>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
